@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Niconico 1080p Gear Indicator
 // @namespace    http://tampermonkey.net/
-// @version      1.5
+// @version      1.6
 // @description  ニコニコ動画の実際の動画解像度が1080pのときに歯車アイコンに赤い点を表示する
 // @match        https://www.nicovideo.jp/watch/*
 // @grant        none
@@ -10,7 +10,22 @@
 (function() {
     'use strict';
 
+    let currentVideo = null;
+
     function updateGearIndicator() {
+        const video = document.querySelector('video');
+        if (video !== currentVideo) {
+            if (currentVideo) {
+                currentVideo.removeEventListener('resize', updateGearIndicator);
+                currentVideo.removeEventListener('loadedmetadata', updateGearIndicator);
+            }
+            currentVideo = video;
+            if (currentVideo) {
+                currentVideo.addEventListener('resize', updateGearIndicator);
+                currentVideo.addEventListener('loadedmetadata', updateGearIndicator);
+            }
+        }
+
         // 1. 歯車アイコン（設定ボタン）を取得
         const gearButton = document.querySelector('button[aria-label="設定"]');
         if (!gearButton) return;
@@ -18,7 +33,6 @@
         let indicator = gearButton.querySelector('.gear-1080p-indicator');
 
         // 2. video要素の実際の内部解像度を取得して判定 (1080pは通常横1920以上または縦1080以上)
-        const video = document.querySelector('video');
         const is1080p = video && (video.videoWidth >= 1920 || video.videoHeight >= 1080);
 
         if (is1080p) {
@@ -51,9 +65,18 @@
         }
     }
 
-    // DOMの変化を監視して継続的にアイコンの状態を更新
+    let updateScheduled = false;
+    function scheduleUpdate() {
+        if (updateScheduled) return;
+        updateScheduled = true;
+        requestAnimationFrame(() => {
+            updateScheduled = false;
+            updateGearIndicator();
+        });
+    }
+
     const observer = new MutationObserver(() => {
-        updateGearIndicator();
+        scheduleUpdate();
     });
 
     observer.observe(document.body, {
@@ -61,6 +84,5 @@
         subtree: true
     });
 
-    // 定期チェックも併用して確実に状態を反映
-    setInterval(updateGearIndicator, 2000);
+    updateGearIndicator();
 })();

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NicoVideo Theater Mode Toggle
 // @namespace    http://tampermonkey.net/
-// @version      0.9
+// @version      1.0
 // @description  ニコニコの動画ページにシアターモードを追加（Tで切り替える）
 // @author       daenomo
 // @match        https://www.nicovideo.jp/watch/*
@@ -11,31 +11,77 @@
 (function() {
     'use strict';
 
-    window.__nicoFinalToggle = window.__nicoFinalToggle || {
-        expanded: false,
-        backups: new Map()
-    };
+    const originalStyles = new Map();
+    const seekBarHandlers = new Map();
+    let expanded = false;
 
-    function set(el, props) {
-        if (!el) return;
-        if (!window.__nicoFinalToggle.backups.has(el)) {
-            window.__nicoFinalToggle.backups.set(el, el.getAttribute('style') || "NONE");
+    function rememberStyle(el, property) {
+        let snapshot = originalStyles.get(el);
+        if (!snapshot) {
+            snapshot = {
+                hadStyleAttribute: el.hasAttribute('style'),
+                properties: new Map()
+            };
+            originalStyles.set(el, snapshot);
         }
-        Object.entries(props).forEach(([k, v]) => el.style.setProperty(k, v, 'important'));
+
+        if (!snapshot.properties.has(property)) {
+            snapshot.properties.set(property, {
+                value: el.style.getPropertyValue(property),
+                priority: el.style.getPropertyPriority(property)
+            });
+        }
+    }
+
+    function setStyles(el, properties) {
+        Object.entries(properties).forEach(([property, value]) => {
+            rememberStyle(el, property);
+            el.style.setProperty(property, value, 'important');
+        });
+    }
+
+    function restoreStyles() {
+        originalStyles.forEach((snapshot, el) => {
+            snapshot.properties.forEach(({ value, priority }, property) => {
+                if (value) el.style.setProperty(property, value, priority);
+                else el.style.removeProperty(property);
+            });
+
+            if (!snapshot.hadStyleAttribute && !el.getAttribute('style')) {
+                el.removeAttribute('style');
+            }
+        });
+        originalStyles.clear();
+    }
+
+    function setSeekBarHandlers(seekBar) {
+        const show = () => seekBar.style.setProperty('opacity', '1', 'important');
+        const hide = () => seekBar.style.setProperty('opacity', '0', 'important');
+        seekBar.addEventListener('mouseenter', show);
+        seekBar.addEventListener('mouseleave', hide);
+        seekBarHandlers.set(seekBar, { show, hide });
+    }
+
+    function removeSeekBarHandlers() {
+        seekBarHandlers.forEach(({ show, hide }, seekBar) => {
+            seekBar.removeEventListener('mouseenter', show);
+            seekBar.removeEventListener('mouseleave', hide);
+        });
+        seekBarHandlers.clear();
     }
 
     function toggle() {
         const video = document.querySelector('video');
         if (!video) return;
 
-        if (!window.__nicoFinalToggle.expanded) {
+        if (!expanded) {
             // --- 拡大処理 ---
-            document.documentElement.style.setProperty('overflow-x', 'hidden', 'important');
-            document.body.style.setProperty('overflow-x', 'hidden', 'important');
+            setStyles(document.documentElement, { 'overflow-x': 'hidden' });
+            setStyles(document.body, { 'overflow-x': 'hidden' });
 
             let curr = video;
             while (curr && curr !== document.body) {
-                set(curr, {
+                setStyles(curr, {
                     'width': '100%',
                     'max-width': '100vw',
                     'height': 'auto',
@@ -56,7 +102,7 @@
             // シークバー (floating領域) の修正
             const seekBars = document.querySelectorAll('[class*="SeekBar"], [data-styling-area="floating"]');
             seekBars.forEach(sb => {
-                set(sb, {
+                setStyles(sb, {
                     'position': 'absolute',
                     'bottom': '0',
                     'top': 'auto',
@@ -71,33 +117,20 @@
                     'transform': 'none'
                 });
 
-                // マウスイベントによる表示制御のみを追加
-                sb.onmouseenter = () => sb.style.setProperty('opacity', '1', 'important');
-                sb.onmouseleave = () => sb.style.setProperty('opacity', '0', 'important');
+                setSeekBarHandlers(sb);
 
                 sb.querySelectorAll('*').forEach(child => {
-                    child.style.setProperty('pointer-events', 'auto', 'important');
+                    setStyles(child, { 'pointer-events': 'auto' });
                 });
             });
 
-            window.__nicoFinalToggle.expanded = true;
+            expanded = true;
             console.log("Nico Theater: Expanded");
         } else {
             // --- 復元処理 ---
-            const seekBars = document.querySelectorAll('[class*="SeekBar"], [data-styling-area="floating"]');
-            seekBars.forEach(sb => {
-                sb.onmouseenter = null;
-                sb.onmouseleave = null;
-            });
-
-            window.__nicoFinalToggle.backups.forEach((style, el) => {
-                if (style === "NONE") el.removeAttribute('style');
-                else el.setAttribute('style', style);
-            });
-            window.__nicoFinalToggle.backups.clear();
-            document.documentElement.style.overflowX = '';
-            document.body.style.overflowX = '';
-            window.__nicoFinalToggle.expanded = false;
+            removeSeekBarHandlers();
+            restoreStyles();
+            expanded = false;
             console.log("Nico Theater: Restored");
         }
     }

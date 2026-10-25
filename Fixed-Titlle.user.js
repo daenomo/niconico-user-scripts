@@ -1,7 +1,8 @@
 // ==UserScript==
 // @name         ニコニコフルスクリーン固定タイトル (F11フルスクリーン完全対応版)
 // @namespace    http://tampermonkey.net
-// @version      16.0
+// @version      16.1
+// @description  ニコニコ動画を全画面表示したとき、操作中に動画タイトルを表示します
 // @match        https://*.nicovideo.jp/watch/*
 // @grant        none
 // ==/UserScript==
@@ -15,8 +16,8 @@
     function createTitleElement() {
         const titleDiv = document.createElement('div');
         titleDiv.id = ID;
-        const pageTitle = document.title.replace(/ - ニコニコ動画\$/, '');
-        titleDiv.textContent = "タイトル: " + pageTitle;
+        const pageTitle = document.title.replace(/ - ニコニコ動画$/, '');
+        titleDiv.textContent = `タイトル: ${pageTitle}`;
 
         titleDiv.style.cssText = `
             position: absolute !important;
@@ -43,36 +44,51 @@
         return titleDiv;
     }
 
+    function isFullscreen(videoElement) {
+        const rect = videoElement.getBoundingClientRect();
+        return !!(document.fullscreenElement || document.webkitFullscreenElement) ||
+               rect.width >= window.innerWidth * 0.95 ||
+               rect.height >= window.innerHeight * 0.95;
+    }
+
+    function getTitleElement(videoElement, create = false) {
+        const target = videoElement.parentElement;
+        if (!target) return null;
+
+        let titleEl = target.querySelector(`#${ID}`);
+        if (!titleEl && create) {
+            titleEl = createTitleElement();
+            target.appendChild(titleEl);
+        }
+        return titleEl;
+    }
+
+    function hideTitle(titleEl) {
+        if (titleEl) titleEl.style.opacity = '0';
+        if (hideTimeout) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
+        }
+    }
+
     function triggerShow() {
         const videoElement = document.querySelector('video');
         if (!videoElement) return;
 
-        const target = videoElement.parentElement;
-        if (!target) return;
+        const titleEl = getTitleElement(videoElement, true);
+        if (!titleEl) return;
 
-        let titleEl = target.querySelector(`#${ID}`);
-        if (!titleEl) {
-            titleEl = createTitleElement();
-            target.appendChild(titleEl);
-        }
-
-        const rect = videoElement.getBoundingClientRect();
-        const isFullscreenNow = !!(document.fullscreenElement || document.webkitFullscreenElement) ||
-                                (rect.width >= window.innerWidth * 0.95) ||
-                                (rect.height >= window.innerHeight * 0.95);
-
-        if (!isFullscreenNow) {
-            titleEl.style.opacity = '0';
-            if (hideTimeout) clearTimeout(hideTimeout);
+        if (!isFullscreen(videoElement)) {
+            hideTitle(titleEl);
             return;
         }
 
         titleEl.style.opacity = '1';
-
         if (hideTimeout) clearTimeout(hideTimeout);
 
         hideTimeout = setTimeout(() => {
-            if (titleEl) titleEl.style.opacity = '0';
+            titleEl.style.opacity = '0';
+            hideTimeout = null;
         }, 2500);
     }
 
@@ -80,20 +96,11 @@
         const videoElement = document.querySelector('video');
         if (!videoElement) return;
 
-        const target = videoElement.parentElement;
-        if (!target) return;
-
-        const titleEl = target.querySelector(`#${ID}`);
+        const titleEl = getTitleElement(videoElement);
         if (!titleEl) return;
 
-        const rect = videoElement.getBoundingClientRect();
-        const isFullscreenNow = !!(document.fullscreenElement || document.webkitFullscreenElement) ||
-                                (rect.width >= window.innerWidth * 0.95) ||
-                                (rect.height >= window.innerHeight * 0.95);
-
-        if (!isFullscreenNow) {
-            titleEl.style.opacity = '0';
-            if (hideTimeout) clearTimeout(hideTimeout);
+        if (!isFullscreen(videoElement)) {
+            hideTitle(titleEl);
         }
     }
 
