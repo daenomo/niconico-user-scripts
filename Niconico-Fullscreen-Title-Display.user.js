@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         ニコニコフルスクリーン固定タイトル (F11フルスクリーン完全対応版)
+// @name         Niconico Fullscreen Title Display
 // @namespace    http://tampermonkey.net
 // @version      16.1
 // @description  ニコニコ動画を全画面表示したとき、操作中に動画タイトルを表示します
