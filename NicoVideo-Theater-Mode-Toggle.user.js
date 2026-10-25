@@ -1,20 +1,3 @@
-# NicoVideo Theater Mode Toggle
-
-ニコニコ動画の視聴ページで、ブラウザの幅いっぱいに動画を拡大する「シアターモード」を追加するTampermonkey用UserScriptです。
-
-## 特徴
-- **キーボードショートカット**: `T`キーを押すだけで拡大/縮小を切り替えられます。
-- **標準プレイヤーの挙動を再現**: 拡大中も操作パネル（シークバーなど）はマウスオーバー時のみ表示されます。
-- **完全なレスポンシブ**: ブラウザの幅に合わせて動画が最適化されます。
-- **安全な設計**: 元のページのスタイルを保存して復元するため、レイアウトが崩れにくい設計です。
-
-## インストール方法
-1. ブラウザに [Tampermonkey](https://www.tampermonkey.net/) 拡張機能をインストールします。
-2. Tampermonkeyのダッシュボードから「新規スクリプトを作成」を選択します。
-3. 以下のソースコードをコピーして貼り付け、保存します。
-
-## ソースコード
-```
 // ==UserScript==
 // @name         NicoVideo Theater Mode Toggle
 // @namespace    http://tampermonkey.net/
@@ -130,4 +113,3 @@
 
     console.log("NicoVideo Theater Mode Script Loaded. Press 'T' to toggle.");
 })();
-```

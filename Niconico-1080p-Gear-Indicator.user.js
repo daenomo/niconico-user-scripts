@@ -1,19 +1,3 @@
-# Niconico 1080p Gear Indicator
-
-ニコニコ動画で動画の実際の内部解像度が **1080p（1920x1080以上）** のときに、プレイヤーの設定（歯車）アイコンの右上付近に赤いインジケータードットを表示する Tampermonkey用ユーザー・スクリプトです。
-
-## 概要
-
-ニコニコ動画の新プレイヤーで、現在の画質が1080pで再生されているかどうかをひと目でわかりやすくするためのスクリプトです。DOM上の文字列を探索する代わりに、HTML5の `<video>` 要素の `videoWidth` / `videoHeight` を直接監視・判定するため、軽量かつ確実動作します。
-
-## インストール方法
-
-1. ブラウザに [Tampermonkey](https://www.tampermonkey.net/) などのユーザースクリプトマネージャーをインストールします。
-2. 新規スクリプトを作成し、下記のコードをすべて貼り付けて保存します。
-
-## ユーザー・スクリプトコード
-
-```javascript
 // ==UserScript==
 // @name         Niconico 1080p Gear Indicator
 // @namespace    http://tampermonkey.net/
@@ -80,10 +64,3 @@
     // 定期チェックも併用して確実に状態を反映
     setInterval(updateGearIndicator, 2000);
 })();
-
-```
-
-## 仕様・特徴
-
-* **スマートな判定**: 設定メニューを開いていなくても、`<video>` タグの解像度（`videoWidth` / `videoHeight`）から直接判定します。
-* **軽量設計**: `MutationObserver` によるDOM監視と、安全のための定期チェック（setInterval）を組み合わせ、プレイヤーの切り替わりや画質変更にしなやかに追従します。
